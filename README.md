@@ -42,6 +42,10 @@ Download
 
 - Using `Go` `➜ go get github.com/alash3al/http2fcgi`
 
+Advanced
+=========
+> From your app you can ask `http2fcgi` to send a file with any size directly to the browser without any hassle in your app logic, just send a header `X-SendFile: /full/path/to/file` then let `http2bin` deal with it. 
+
 Author
 ========
 Mohammed Al Ashaal
