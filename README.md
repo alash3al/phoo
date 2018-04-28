@@ -38,7 +38,7 @@ Usage of http2fcgi:
 
 Download
 ==========
-- Using `Docker` `➜ docker run --network=host -v /var/www/site/public:/var/www/site/public alash3al/http2fcgi -root /var/www/site/public -http :8085`
+- Using `Docker` `➜ docker run --network=host -v /var/www/site/public:/var/www/site/public -v /var/run/php/php7.0-fpm.sock:/var/run/php/php7.0-fpm.sock alash3al/http2fcgi -root /var/www/site/public -http :8085`
 
 - Using `Go` `➜ go get github.com/alash3al/http2fcgi`
 
