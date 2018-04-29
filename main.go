@@ -201,6 +201,8 @@ func Serve(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	res.Header().Set("Server", "http2fcgi")
+
 	if res.Header().Get("X-SendFile") != "" && IsValidFile(res.Header().Get("X-SendFile")) {
 		sendFilename := res.Header().Get("X-SendFile")
 		res.Header().Del("X-SendFile")
