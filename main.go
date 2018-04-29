@@ -19,7 +19,7 @@ import (
 
 var (
 	// FlagHTTPAddr .
-	FlagHTTPAddr = flag.String("http", ":6065", "the http addres to listen on")
+	FlagHTTPAddr = flag.String("http", ":6065", "the http address to listen on")
 
 	// FlagDocRoot .
 	FlagDocRoot = flag.String("root", "./", "the document root")
@@ -28,7 +28,7 @@ var (
 	FlagFCGIBackend = flag.String("fcgi", "unix:///var/run/php/php7.0-fpm.sock", "the fcgi backend to connect to, you can pass more fcgi related params as query params")
 
 	// FlagIndex .
-	FlagIndex = flag.String("index", "index.php,index.html", "the default index file")
+	FlagIndex = flag.String("index", "index.php,index.html", "the default index file `comma separated list`")
 
 	// FlagRouter .
 	FlagRouter = flag.String("router", "index.php", "the router filename incase of any 404 error")
