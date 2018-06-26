@@ -166,6 +166,7 @@ func Serve(res http.ResponseWriter, req *http.Request) {
 		"AUTH_DIGEST":        req.Header.Get("Authorization"),
 		"PATH_INFO":          pathInfo,
 		"ORIG_PATH_INFO":     pathInfo,
+		"HTTP_HOST":          req.Host,
 	}
 
 	for k, v := range req.Header {
