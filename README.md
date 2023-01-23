@@ -1,60 +1,22 @@
-HTTP2FCGI
-==========
-> Quickly serve any `FastCGI` based application with no hassle.
-
-Quick Overview
-==============
-> `➜  http2fcgi --root /var/www/laravel-project/public --http :8000`
-
-Help?
-=====
-```bash
-➜  http2fcgi -h
-Usage of http2fcgi:
-  -ext comma separated list
-        the fastcgi file extension(s) comma separated list (default "php")
-  -fcgi string
-        the fcgi backend to connect to, you can pass more fcgi related params as query params (default "unix:///var/run/php/php7.0-fpm.sock")
-  -http string
-        the http address to listen on (default ":6065")
-  -index string comma separated list
-        the default index file (default "index.php,index.html")
-  -listing
-        whether to allow directory listing or not
-  -root string
-        the document root (default "./")
-  -router string
-        the router filename incase of any 404 error (default "index.php")
-  -rtimeout int
-        the read timeout, zero means unlimited
-  -wtimeout int
-        the write timeout, zero means unlimited
-```
-
-What?
-=======
-> http2fcgi is a reverse proxy that will convert the standard `http` request to `fcgi` 
-request so it can served by i.e `php`, `python` ... etc.
+PHOO
+====
+> PHP quick high performance HTTP server, 
+> under the hood it uses `PHP-FPM` as a PHP process manager and automates its configurations.
 
 Why?
+===
+> PHP isn't built for async world, so adopting the community, ecosystem and the mindset 
+> to be async isn't an easy task,
+> but also I want very simple command to run, and it handles everything without too many configurations files,
+> today most of the apps are using environment variables and the well-known `.env` file, so why there isn't a tool
+> that you can ask to just run and configure everything from a single `.env` file, I don't want to add a hassle for understanding
+> how `PHP-FPM` is working or anything else, all what I need it `$ phoo serve`, that's all!
+
+How?
 ====
-> I wanted a production ready simple and tiny solution to serve some of my `laravel` based projects.
+> Basically, `phoo` is a simple static-file as well a fastcgi reverse-proxy, but mainly focuses on `PHP`, not only that,
+> but also, you can consider `phoo` a supervisor that manages `PHP-FPM` and its configurations to match today's setup.
 
-Download
-==========
-- Binary, go to the [releases page](https://github.com/alash3al/http2fcgi/releases).
-- Using `Docker` `➜ docker run --network=host -v /var/www/site/public:/var/www/site/public -v /var/run/php/php7.0-fpm.sock:/var/run/php/php7.0-fpm.sock alash3al/http2fcgi -root /var/www/site/public -http :8085`.
-
-- Using `Go` `➜ go get github.com/alash3al/http2fcgi`.
-
-Advanced
-=========
-> From your app you can ask `http2fcgi` to send a file with any size directly to the browser without any hassle in your app logic, just send a header `X-SendFile: /full/path/to/file` then let `http2fcgi` deal with it. 
-
-Author
-========
-Mohammed Al Ashaal
-
-License
-========
-MIT License
+Usage?
+======
+> SOON

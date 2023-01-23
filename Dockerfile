@@ -1,9 +1,21 @@
-FROM golang:alpine
+FROM golang:1.18-alpine As builder
 
-RUN apk update && apk add git
+WORKDIR /phoo/
 
-RUN go get github.com/alash3al/http2fcgi
+RUN apk update && apk add git upx
 
-ENTRYPOINT ["http2fcgi"]
+COPY go.mod go.sum ./
 
-WORKDIR /root/
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /usr/bin/phoo ./cmd/
+
+RUN upx -9 /usr/bin/phoo
+
+FROM alpine
+
+WORKDIR /phoo/
+
+COPY --from=builder /usr/bin/phoo /usr/bin/phoo
