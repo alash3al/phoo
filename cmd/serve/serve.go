@@ -158,7 +158,7 @@ func listenAndServe() cli.ActionFunc {
 			}
 		})()
 
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 10)
 
 		log.Infoj(map[string]interface{}{
 			"message": "configurations",
