@@ -1,4 +1,4 @@
-module github.com/alash3al/xcgi
+module github.com/alash3al/phoo
 
 go 1.19
 

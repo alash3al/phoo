@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/alash3al/xcgi/cmd/serve"
-	"github.com/alash3al/xcgi/pkg/symbols"
+	"github.com/alash3al/phoo/cmd/serve"
+	"github.com/alash3al/phoo/pkg/symbols"
 	"github.com/joho/godotenv"
 	"github.com/labstack/gommon/log"
 	"github.com/urfave/cli/v2"

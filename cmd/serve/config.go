@@ -1,8 +1,8 @@
 package serve
 
 import (
-	"github.com/alash3al/xcgi/pkg/fastcgi"
-	"github.com/alash3al/xcgi/pkg/fpm"
+	"github.com/alash3al/phoo/pkg/fastcgi"
+	"github.com/alash3al/phoo/pkg/fpm"
 	"os"
 	"os/exec"
 	"os/signal"

@@ -3,9 +3,9 @@ package serve
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/alash3al/xcgi/pkg/fastcgi"
-	"github.com/alash3al/xcgi/pkg/fpm"
-	"github.com/alash3al/xcgi/pkg/symbols"
+	"github.com/alash3al/phoo/pkg/fastcgi"
+	"github.com/alash3al/phoo/pkg/fpm"
+	"github.com/alash3al/phoo/pkg/symbols"
 	"github.com/labstack/gommon/log"
 	"github.com/thoas/stats"
 	"github.com/urfave/cli/v2"
