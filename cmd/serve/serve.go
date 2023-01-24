@@ -1,18 +1,17 @@
 package serve
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/alash3al/phoo/pkg/fastcgi"
 	"github.com/alash3al/phoo/pkg/fpm"
 	"github.com/alash3al/phoo/pkg/symbols"
 	"github.com/labstack/gommon/log"
-	"github.com/thoas/stats"
 	"github.com/urfave/cli/v2"
 	"net/http"
 	"os"
 	"runtime"
 	"strings"
+	"time"
 )
 
 func Command() *cli.Command {
@@ -124,6 +123,7 @@ func listenAndServe() cli.ActionFunc {
 				DocumentRoot:           cliCtx.String(symbols.FlagNameDocumentRoot),
 				DefaultScript:          cliCtx.String(symbols.FlagNameDefaultScript),
 				RestrictDotFilesAccess: true,
+				ServeStaticFiles:       false,
 				FastCGIParams: map[string]string{
 					"SERVER_SOFTWARE": fmt.Sprintf("%s/%s", symbols.AppName, symbols.AppVersion),
 				},
@@ -131,6 +131,22 @@ func listenAndServe() cli.ActionFunc {
 		}
 
 		if err := config.Verify(); err != nil {
+			return err
+		}
+
+		fastCGIHandler, err := fastcgi.New(config.FastCGI)
+		if err != nil {
+			return err
+		}
+
+		mainHandler, err := assetsCacheMiddleware(&config, recoverMiddleware(
+			loggerMiddleware(
+				config.EnableLogs,
+				fastCGIHandler.ServeHTTP,
+			),
+		))
+
+		if err != nil {
 			return err
 		}
 
@@ -145,9 +161,9 @@ func listenAndServe() cli.ActionFunc {
 			}
 		})()
 
-		fastCGIHandler, err := fastcgi.New(config.FastCGI)
-		if err != nil {
-			return err
+		for runner.Process == nil {
+			log.Info("waiting php-fpm to be ready")
+			time.Sleep(5 * time.Second)
 		}
 
 		log.Infoj(map[string]interface{}{
@@ -156,25 +172,9 @@ func listenAndServe() cli.ActionFunc {
 			"fpm-cmd": runner.String(),
 		})
 
-		statsCollector := stats.New()
-
-		http.HandleFunc("/_/stats", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			j, _ := json.Marshal(statsCollector.Data())
-
-			w.Write(j)
-		})
-
-		http.Handle("/", recoverMiddleware(
-			loggerMiddleware(
-				config.EnableLogs,
-				statsCollector.Handler(
-					fastCGIHandler,
-				).ServeHTTP,
-			),
-		))
-
-		return http.ListenAndServe(config.HTTPListenAddr, nil)
-
+		return http.ListenAndServe(
+			config.HTTPListenAddr,
+			mainHandler,
+		)
 	}
 }

@@ -14,6 +14,7 @@ type Config struct {
 	DefaultScript          string
 	DocumentRoot           string
 	RestrictDotFilesAccess bool
+	ServeStaticFiles       bool
 	FastCGIParams          map[string]string
 }
 
@@ -106,6 +107,11 @@ func (c *Client) addParams(params map[string]string) gofast.Middleware {
 }
 
 func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !c.config.ServeStaticFiles {
+		c.handler.ServeHTTP(w, r)
+		return
+	}
+
 	filename := filepath.Join(
 		c.config.DocumentRoot,
 		filepath.Clean(r.URL.Path),

@@ -33,6 +33,8 @@ func (c *Config) Verify() error {
 		*path = abs
 	}
 
+	c.FPM.Clean()
+
 	if _, err := exec.LookPath(c.FPM.Bin); err != nil {
 		return err
 	}
