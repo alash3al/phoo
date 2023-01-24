@@ -80,7 +80,7 @@ func Command() *cli.Command {
 				Name:     symbols.FlagNameWorkerMaxRequests,
 				Usage:    "the PHP worker max requests (the worker will be restarted after reaching this value)",
 				EnvVars:  []string{symbols.EnvKeyWorkerMaxRequests},
-				Required: true,
+				Value:    500,
 				Category: "php",
 			},
 			&cli.StringFlag{
