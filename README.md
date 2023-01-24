@@ -15,6 +15,7 @@ How?
 ====
 > Basically, `phoo` is a simple static-file as well a fastcgi reverse-proxy, but mainly focuses on `PHP`, not only that,
 > but also, you can consider `phoo` a supervisor that manages `PHP-FPM` and its configurations to match today's setup.
+> `phoo` is loading all the files in the document root into memory to accelerate static files serving, so don't put any huge file there.
 
 Usage?
 ======
