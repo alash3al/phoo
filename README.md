@@ -17,4 +17,4 @@ How?
 
 Usage?
 ======
-> SOON
+> for now, use our official docker image [here](https://github.com/alash3al/phoo/pkgs/container/phoo)
