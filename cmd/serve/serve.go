@@ -158,10 +158,7 @@ func listenAndServe() cli.ActionFunc {
 			}
 		})()
 
-		for runner.Process == nil {
-			log.Info("waiting php-fpm to be ready")
-			time.Sleep(5 * time.Second)
-		}
+		time.Sleep(time.Second * 5)
 
 		log.Infoj(map[string]interface{}{
 			"message": "configurations",
