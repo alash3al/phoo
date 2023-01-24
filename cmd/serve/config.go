@@ -14,6 +14,7 @@ type Config struct {
 	FPM            fpm.Config
 	FastCGI        fastcgi.Config
 	HTTPListenAddr string
+	DocumentRoot   string
 	EnableLogs     bool
 }
 
@@ -23,6 +24,7 @@ func (c *Config) Verify() error {
 		&(c.FPM.PIDFilename),
 		&(c.FPM.SocketFilename),
 		&(c.FastCGI.DefaultScript),
+		&(c.DocumentRoot),
 	}
 
 	for _, path := range paths {

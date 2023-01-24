@@ -2,6 +2,7 @@ package serve
 
 import (
 	"fmt"
+	"github.com/NYTimes/gziphandler"
 	"github.com/alash3al/phoo/pkg/fastcgi"
 	"github.com/alash3al/phoo/pkg/fpm"
 	"github.com/alash3al/phoo/pkg/symbols"
@@ -104,6 +105,7 @@ func listenAndServe() cli.ActionFunc {
 	return func(cliCtx *cli.Context) error {
 		config := Config{
 			HTTPListenAddr: cliCtx.String(symbols.FlagNameHTTPListenAddr),
+			DocumentRoot:   cliCtx.String(symbols.FlagNameDocumentRoot),
 			EnableLogs:     cliCtx.Bool(symbols.FlagNameEnableLogs),
 			FPM: fpm.Config{
 				ConfigFilename:    ".fpm.config.ini",
@@ -120,10 +122,8 @@ func listenAndServe() cli.ActionFunc {
 				Stderr:            os.Stderr,
 			},
 			FastCGI: fastcgi.Config{
-				DocumentRoot:           cliCtx.String(symbols.FlagNameDocumentRoot),
 				DefaultScript:          cliCtx.String(symbols.FlagNameDefaultScript),
 				RestrictDotFilesAccess: true,
-				ServeStaticFiles:       false,
 				FastCGIParams: map[string]string{
 					"SERVER_SOFTWARE": fmt.Sprintf("%s/%s", symbols.AppName, symbols.AppVersion),
 				},
@@ -140,10 +140,7 @@ func listenAndServe() cli.ActionFunc {
 		}
 
 		mainHandler, err := assetsCacheMiddleware(&config, recoverMiddleware(
-			loggerMiddleware(
-				config.EnableLogs,
-				fastCGIHandler.ServeHTTP,
-			),
+			fastCGIHandler.ServeHTTP,
 		))
 
 		if err != nil {
@@ -174,7 +171,10 @@ func listenAndServe() cli.ActionFunc {
 
 		return http.ListenAndServe(
 			config.HTTPListenAddr,
-			mainHandler,
+			gziphandler.GzipHandler(loggerMiddleware(
+				config.EnableLogs,
+				mainHandler,
+			)),
 		)
 	}
 }

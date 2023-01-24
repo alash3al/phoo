@@ -38,12 +38,13 @@ func recoverMiddleware(handlerFunc http.HandlerFunc) http.HandlerFunc {
 
 func assetsCacheMiddleware(config *Config, handlerFunc http.HandlerFunc) (http.HandlerFunc, error) {
 	memfs := sync.Map{}
-	if err := filepath.WalkDir(config.FastCGI.DocumentRoot, func(path string, d fs.DirEntry, err error) error {
+
+	if err := filepath.WalkDir(config.DocumentRoot, func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() {
 			return nil
 		}
 
-		if filepath.Ext(config.FastCGI.DocumentRoot) == filepath.Ext(path) {
+		if filepath.Ext(config.DocumentRoot) == filepath.Ext(path) {
 			return nil
 		}
 
@@ -64,7 +65,8 @@ func assetsCacheMiddleware(config *Config, handlerFunc http.HandlerFunc) (http.H
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		contents, found := memfs.Load(r.URL.Path)
+		filename := filepath.Join(config.DocumentRoot, r.URL.Path)
+		contents, found := memfs.Load(filename)
 		if !found {
 			handlerFunc(w, r)
 			return
