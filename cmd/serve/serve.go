@@ -12,7 +12,6 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	"time"
 )
 
 func Command() *cli.Command {
@@ -157,8 +156,6 @@ func listenAndServe() cli.ActionFunc {
 				log.Fatal(err.Error())
 			}
 		})()
-
-		time.Sleep(time.Second * 10)
 
 		log.Infoj(map[string]interface{}{
 			"message": "configurations",
