@@ -29,9 +29,9 @@ type Config struct {
 }
 
 func (c *Config) Clean() {
-	os.Remove(c.ConfigFilename)
-	os.Remove(c.PIDFilename)
-	os.Remove(c.SocketFilename)
+	_ = os.Remove(c.ConfigFilename)
+	_ = os.Remove(c.PIDFilename)
+	_ = os.Remove(c.SocketFilename)
 }
 
 func New(config Config) (*exec.Cmd, error) {
@@ -53,6 +53,7 @@ func New(config Config) (*exec.Cmd, error) {
 	cmd := exec.Command(config.Bin, "-F", "-O", "-y", config.ConfigFilename)
 	cmd.Stdout = config.Stdout
 	cmd.Stderr = config.Stderr
+	cmd.Env = os.Environ()
 
 	for _, entry := range config.INI {
 		entry = strings.TrimSpace(entry)
