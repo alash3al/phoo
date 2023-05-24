@@ -62,5 +62,9 @@ func New(config Config) (*exec.Cmd, error) {
 		}
 	}
 
-	return cmd, cmd.Start()
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	return cmd, nil
 }

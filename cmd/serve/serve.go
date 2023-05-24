@@ -12,6 +12,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"time"
 )
 
 func Command() *cli.Command {
@@ -149,6 +150,17 @@ func listenAndServe() cli.ActionFunc {
 		runner, err := fpm.New(config.FPM)
 		if err != nil {
 			return err
+		}
+
+		for {
+			if _, err := os.Stat(config.FPM.SocketFilename); err != nil {
+				log.Warn("waiting till fastcgi server starts ...")
+				time.Sleep(time.Second * 1)
+				continue
+			}
+
+			log.Info("the fastcgi server has been started ...")
+			break
 		}
 
 		go (func() {
