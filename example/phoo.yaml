@@ -11,7 +11,7 @@ env:
 
 fpm:
   bin: "php-fpm8.2"
-  worker_count: 8
+  worker_count: 4
   worker_max_requests: 500
 
 ini:
