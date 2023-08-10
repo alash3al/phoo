@@ -3,10 +3,10 @@ package config
 import (
 	_ "embed"
 	"fmt"
+	"github.com/caarlos0/env/v9"
+	"github.com/joho/godotenv"
 	"github.com/valyala/fasttemplate"
-	"gopkg.in/yaml.v3"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 )
@@ -17,52 +17,46 @@ var (
 )
 
 type Config struct {
-	DocumentRoot     string `yaml:"document_root"`
-	DefaultScript    string `yaml:"default_script"`
-	GZIPLevel        int    `yaml:"gzip_level"`
-	HTTPListenAddr   string `yaml:"http_listen_addr"`
-	EnableAccessLogs bool   `yaml:"enable_access_logs"`
-	DataDir          string `yaml:"data_dir"`
+	PrometheusMetricsEnabled bool              `env:"PROMETHEUS_METRICS_ENABLED"`
+	PrometheusMetricsPath    string            `env:"PROMETHEUS_METRICS_PATH"`
+	DocumentRoot             string            `env:"DOCUMENT_ROOT"`
+	DefaultScript            string            `env:"DEFAULT_SCRIPT"`
+	GZIPEnabled              bool              `env:"GZIP_ENABLED"`
+	GZIPLevel                int               `env:"GZIP_LEVEL"`
+	HTTPListenAddr           string            `env:"HTTP_LISTEN_ADDR"`
+	EnableAccessLogs         bool              `env:"ENABLE_ACCESS_LOGS"`
+	DataDir                  string            `env:"DATA_DIR"`
+	INI                      map[string]string `env:"PHP_INI" envSeparator:";"`
+	FPMBinFilename           string            `env:"FPM_BIN_PATH"`
+	WorkerCount              int               `env:"WORKER_COUNT"`
+	WorkerMaxRequests        int               `env:"WORKER_MAX_REQUEST_COUNT"`
+	WorkerTerminationTimeout int               `env:"WORKER_MAX_REQUEST_TIMEOUT"`
 
-	Env map[string]string `yaml:"env"`
-
-	INI map[string]string `yaml:"ini"`
-
-	FPM struct {
-		Bin                string    `yaml:"bin"`
-		WorkerCount        int       `yaml:"worker_count"`
-		WorkerMaxRequests  int       `yaml:"worker_max_requests"`
-		TerminationTimeout int       `yaml:"termination_timeout"`
-		ConfigContent      string    `yaml:"-"`
-		ConfigFilename     string    `yaml:"-"`
-		PIDFilename        string    `yaml:"-"`
-		SocketFilename     string    `yaml:"-"`
-		Command            *exec.Cmd `yaml:"-"`
-	} `yaml:"fpm"`
+	fpmConfigContent  string
+	fpmConfigFilename string
+	fpmPIDFilename    string
+	fpmSocketFilename string
 }
 
 func LoadFile(filename string) (*Config, error) {
-	content, err := os.ReadFile(filename)
-	if err != nil {
+	if err := godotenv.Overload(filename); err != nil {
 		return nil, err
 	}
-
-	content = []byte(os.ExpandEnv(string(content)))
 
 	var c Config
 
-	if err := yaml.Unmarshal(content, &c); err != nil {
+	if err := env.Parse(&c); err != nil {
 		return nil, err
 	}
 
-	if err := c.verify(); err != nil {
+	if err := c.ensure(); err != nil {
 		return nil, err
 	}
 
 	return &c, nil
 }
 
-func (c *Config) verify() error {
+func (c *Config) ensure() error {
 	if _, err := os.Stat(c.DefaultScript); err != nil {
 		return err
 	}
@@ -75,6 +69,10 @@ func (c *Config) verify() error {
 		}
 	}
 
+	if c.WorkerCount < 1 {
+		c.WorkerCount = runtime.NumCPU()
+	}
+
 	_ = os.RemoveAll(c.DataDir)
 
 	fpmDir := filepath.Join(c.DataDir, "fpm")
@@ -85,23 +83,19 @@ func (c *Config) verify() error {
 		}
 	}
 
-	if c.FPM.WorkerCount < 1 {
-		c.FPM.WorkerCount = runtime.NumCPU()
-	}
+	c.fpmConfigFilename = filepath.Join(fpmDir, "fpm.ini")
+	c.fpmSocketFilename = filepath.Join(fpmDir, "fpm.sock")
+	c.fpmPIDFilename = filepath.Join(fpmDir, "fpm.pid")
 
-	c.FPM.ConfigFilename = filepath.Join(fpmDir, "fpm.ini")
-	c.FPM.PIDFilename = filepath.Join(fpmDir, "fpm.pid")
-	c.FPM.SocketFilename = filepath.Join(fpmDir, "fpm.sock")
-
-	fpmConfContent = fasttemplate.ExecuteString(fpmConfContent, "{{", "}}", map[string]any{
-		"files.pid":           c.FPM.PIDFilename,
-		"files.socket":        c.FPM.SocketFilename,
-		"worker.count":        fmt.Sprintf("%v", c.FPM.WorkerCount),
-		"worker.max_requests": fmt.Sprintf("%v", c.FPM.WorkerMaxRequests),
-		"termination_timeout": fmt.Sprintf("%v", c.FPM.TerminationTimeout),
+	fpmConfigFileContents := fasttemplate.ExecuteString(fpmConfContent, "{{", "}}", map[string]any{
+		"files.pid":              c.fpmPIDFilename,
+		"files.socket":           c.fpmSocketFilename,
+		"worker.count":           fmt.Sprintf("%v", c.WorkerCount),
+		"worker.max_requests":    fmt.Sprintf("%v", c.WorkerMaxRequests),
+		"worker.request_timeout": fmt.Sprintf("%v", c.WorkerTerminationTimeout),
 	})
 
-	if err := os.WriteFile(c.FPM.ConfigFilename, []byte(fpmConfContent), 0755); err != nil {
+	if err := os.WriteFile(fpmConfigFileContents, []byte(fpmConfigFileContents), 0755); err != nil {
 		return err
 	}
 
