@@ -1,4 +1,4 @@
-package server
+package serve
 
 import (
 	"github.com/labstack/echo/v4"
