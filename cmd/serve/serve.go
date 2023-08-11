@@ -1,186 +1,109 @@
 package serve
 
 import (
-	"fmt"
-	"github.com/NYTimes/gziphandler"
-	"github.com/alash3al/phoo/pkg/fastcgi"
-	"github.com/alash3al/phoo/pkg/fpm"
-	"github.com/alash3al/phoo/pkg/symbols"
-	"github.com/labstack/gommon/log"
+	"errors"
+	"github.com/alash3al/phoo/internals/fpm"
+	"github.com/labstack/echo-contrib/echoprometheus"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/urfave/cli/v2"
-	"net/http"
 	"os"
-	"runtime"
-	"strings"
+	"path/filepath"
 	"time"
 )
 
-func Command() *cli.Command {
-	return &cli.Command{
-		Name:        "serve",
-		Description: "start the http server",
-		Action:      listenAndServe(),
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:     symbols.FlagNameHTTPListenAddr,
-				Usage:    "the http address to listen on",
-				EnvVars:  []string{symbols.EnvKeyListen},
-				Required: true,
-				Category: symbols.AppName,
-			},
-			&cli.StringFlag{
-				Name:     symbols.FlagNameDocumentRoot,
-				Usage:    "the document root",
-				EnvVars:  []string{symbols.EnvKeyDocumentRoot},
-				Required: true,
-				Category: symbols.AppName,
-			},
-			&cli.BoolFlag{
-				Name:     symbols.FlagNameEnableLogs,
-				Usage:    "whether to enable/disable access log",
-				EnvVars:  []string{symbols.EnvKeyEnableLogs},
-				Value:    true,
-				Category: symbols.AppName,
-			},
-			&cli.StringFlag{
-				Name:     symbols.FlagNamePHPFPMBinary,
-				Usage:    "the PHP-FPM binary",
-				EnvVars:  []string{symbols.EnvKeyFPMBin},
-				Value:    "php-fpm",
-				Category: "php",
-			},
-			&cli.StringFlag{
-				Name:     symbols.FlagNamePHPINI,
-				Usage:    "additional PHP INI settings separated with semicolon (;)",
-				EnvVars:  []string{symbols.EnvKeyPHPINI},
-				Category: "php",
-			},
-			&cli.StringFlag{
-				Name:     symbols.FlagNamePHPUser,
-				Usage:    "the user who will PHP-FPM listen as",
-				EnvVars:  []string{symbols.EnvKeyPHPUser},
-				Value:    "www-data",
-				Category: "php",
-			},
-			&cli.StringFlag{
-				Name:     symbols.FlagNamePHPGroup,
-				Usage:    "the group who will PHP-FPM listen as",
-				EnvVars:  []string{symbols.EnvKeyPHPGroup},
-				Value:    "www-data",
-				Category: "php",
-			},
-			&cli.Int64Flag{
-				Name:     symbols.FlagNameWorkersCount,
-				Usage:    "the PHP workers count",
-				EnvVars:  []string{symbols.EnvKeyWorkersCount},
-				Value:    int64(runtime.NumCPU()),
-				Category: "php",
-			},
-			&cli.Int64Flag{
-				Name:     symbols.FlagNameWorkerMaxRequests,
-				Usage:    "the PHP worker max requests (the worker will be restarted after reaching this value)",
-				EnvVars:  []string{symbols.EnvKeyWorkerMaxRequests},
-				Value:    500,
-				Category: "php",
-			},
-			&cli.StringFlag{
-				Name:     symbols.FlagNameRequestTimeout,
-				Usage:    "the request timeout",
-				EnvVars:  []string{symbols.EnvKeyRequestTimeout},
-				Value:    "0",
-				Category: "php",
-			},
-			&cli.StringFlag{
-				Name:     symbols.FlagNameDefaultScript,
-				Usage:    "the default script used as router",
-				EnvVars:  []string{symbols.EnvKeyRouter},
-				Required: true,
-				Category: "php",
-			},
-		},
+var fpmProcess *fpm.Process
+
+func Before() cli.BeforeFunc {
+	return func(ctx *cli.Context) error {
+		if err := os.RemoveAll(ctx.String("data")); err != nil {
+			return err
+		}
+
+		if err := os.MkdirAll(ctx.String("data"), 0755); err != nil {
+			return err
+		}
+
+		if ctx.String("entrypoint") == "" {
+			entrypoints := []string{
+				filepath.Join(ctx.String("root"), "index.php"),
+				filepath.Join(ctx.String("root"), "app.php"),
+				filepath.Join(ctx.String("root"), "server.php"),
+			}
+
+			detectedEntrypoint := ""
+
+			for _, entrypoint := range entrypoints {
+				stat, err := os.Stat(entrypoint)
+				if err != nil {
+					continue
+				}
+
+				if stat.IsDir() {
+					continue
+				}
+
+				detectedEntrypoint = entrypoint
+			}
+
+			if detectedEntrypoint == "" {
+				return errors.New("unable to auto-detect the entrypoint script, try to put it yourself")
+			}
+
+			if err := ctx.Set("entrypoint", detectedEntrypoint); err != nil {
+				return err
+			}
+		}
+
+		fpmProcess = &fpm.Process{
+			BinFilename:           ctx.String("fpm"),
+			PIDFilename:           filepath.Join(ctx.String("data"), "fpm.pid"),
+			ConfigFilename:        filepath.Join(ctx.String("data"), "fpm.ini"),
+			SocketFilename:        filepath.Join(ctx.String("data"), "fpm.sock"),
+			INI:                   ctx.StringSlice("ini"),
+			WorkerCount:           ctx.Int("workers"),
+			WorkerMaxRequestCount: ctx.Int("requests"),
+			WorkerMaxRequestTime:  ctx.Int("timeout"),
+		}
+
+		return fpmProcess.Start()
 	}
 }
 
-func listenAndServe() cli.ActionFunc {
-	return func(cliCtx *cli.Context) error {
-		config := Config{
-			HTTPListenAddr: cliCtx.String(symbols.FlagNameHTTPListenAddr),
-			DocumentRoot:   cliCtx.String(symbols.FlagNameDocumentRoot),
-			EnableLogs:     cliCtx.Bool(symbols.FlagNameEnableLogs),
-			FPM: fpm.Config{
-				ConfigFilename:    ".fpm.config.ini",
-				PIDFilename:       ".fpm.pid",
-				SocketFilename:    ".fpm.sock",
-				User:              cliCtx.String(symbols.FlagNamePHPUser),
-				Group:             cliCtx.String(symbols.FlagNamePHPGroup),
-				Bin:               cliCtx.String(symbols.FlagNamePHPFPMBinary),
-				RequestTimeout:    cliCtx.String(symbols.FlagNameRequestTimeout),
-				WorkerMaxRequests: cliCtx.Int64(symbols.FlagNameWorkerMaxRequests),
-				WorkersCount:      cliCtx.Int64(symbols.FlagNameWorkersCount),
-				INI:               strings.Split(cliCtx.String(symbols.FlagNamePHPINI), ";"),
-				Stdout:            os.Stdout,
-				Stderr:            os.Stderr,
-			},
-			FastCGI: fastcgi.Config{
-				DefaultScript:          cliCtx.String(symbols.FlagNameDefaultScript),
-				RestrictDotFilesAccess: true,
-				FastCGIParams: map[string]string{
-					"SERVER_SOFTWARE": fmt.Sprintf("%s/%s", symbols.AppName, symbols.AppVersion),
-				},
-			},
+func Action() cli.ActionFunc {
+	return func(ctx *cli.Context) error {
+		e := echo.New()
+		e.HideBanner = true
+
+		if ctx.Bool("logs") {
+			e.Use(middleware.Logger())
 		}
 
-		if err := config.Verify(); err != nil {
-			return err
+		if ctx.Bool("cors") {
+			e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+				AllowOrigins:     ctx.StringSlice("cors-origins"),
+				AllowMethods:     ctx.StringSlice("cors-methods"),
+				AllowHeaders:     ctx.StringSlice("cors-headers"),
+				AllowCredentials: ctx.Bool("cors-credentials"),
+				ExposeHeaders:    ctx.StringSlice("cors-expose"),
+				MaxAge:           ctx.Int("cors-age"),
+			}))
 		}
 
-		fastCGIHandler, err := fastcgi.New(config.FastCGI)
-		if err != nil {
-			return err
-		}
+		e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
+			Timeout: time.Duration(ctx.Int("timeout")) * time.Second,
+		}))
 
-		mainHandler, err := assetsCacheMiddleware(&config, recoverMiddleware(
-			fastCGIHandler.ServeHTTP,
+		e.Use(middleware.Recover())
+		e.Use(echoprometheus.NewMiddleware("PHOO"))
+		e.Use(servePrometheusMetricsMiddleware(ctx.String("metrics")))
+		e.Use(serveStaticFilesOnlyMiddleware(ctx.String("root")))
+		e.Use(serveFastCGIMiddleware(
+			ctx.String("entrypoint"),
+			"unix",
+			fpmProcess.SocketFilename,
 		))
 
-		if err != nil {
-			return err
-		}
-
-		runner, err := fpm.New(config.FPM)
-		if err != nil {
-			return err
-		}
-
-		for {
-			if _, err := os.Stat(config.FPM.SocketFilename); err != nil {
-				log.Warn("waiting till fastcgi server starts ...")
-				time.Sleep(time.Second * 1)
-				continue
-			}
-
-			log.Info("the fastcgi server has been started ...")
-			break
-		}
-
-		go (func() {
-			if err := runner.Wait(); err != nil {
-				log.Fatal(err.Error())
-			}
-		})()
-
-		log.Infoj(map[string]interface{}{
-			"message": "configurations",
-			"configs": config,
-			"fpm-cmd": runner.String(),
-		})
-
-		return http.ListenAndServe(
-			config.HTTPListenAddr,
-			gziphandler.GzipHandler(loggerMiddleware(
-				config.EnableLogs,
-				mainHandler,
-			)),
-		)
+		return e.Start(ctx.String("http"))
 	}
 }

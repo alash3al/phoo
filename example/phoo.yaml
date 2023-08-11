@@ -1,0 +1,18 @@
+document_root: "./example"
+default_script: "./example/index.php"
+gzip_level: 0
+http_listen_addr: ":8000"
+data_dir: ".phoo"
+enable_access_logs: true
+
+env:
+  APP_NAME: "laravel"
+  APP_ENV: "debug"
+
+fpm:
+  bin: "php-fpm8.2"
+  worker_count: 4
+  worker_max_requests: 500
+
+ini:
+  display_errors: On

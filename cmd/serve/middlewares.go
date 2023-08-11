@@ -1,78 +1,56 @@
 package serve
 
 import (
-	"github.com/labstack/gommon/log"
-	"io/fs"
-	"mime"
-	"net/http"
+	"github.com/labstack/echo-contrib/echoprometheus"
+	"github.com/labstack/echo/v4"
+	"github.com/yookoala/gofast"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
-	"sync"
 )
 
-func loggerMiddleware(enable bool, handlerFunc http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if enable {
-			log.Infoj(map[string]interface{}{
-				"host": r.Host,
-				"uri":  r.URL.RequestURI(),
-			})
-		}
+func servePrometheusMetricsMiddleware(metricsPath string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			currentPath := strings.Trim(c.Request().URL.Path, "/")
+			metricsPath = strings.Trim(metricsPath, "/")
 
-		handlerFunc(w, r)
-	}
-}
-
-func recoverMiddleware(handlerFunc http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		defer (func() {
-			if err := recover(); err != nil {
-				log.Error(err)
+			if metricsPath == "" {
+				return next(c)
 			}
-		})()
 
-		handlerFunc(w, r)
+			if strings.EqualFold(currentPath, metricsPath) {
+				return echoprometheus.NewHandler()(c)
+			}
+
+			return next(c)
+		}
 	}
 }
 
-func assetsCacheMiddleware(config *Config, handlerFunc http.HandlerFunc) (http.HandlerFunc, error) {
-	memfs := sync.Map{}
+func serveStaticFilesOnlyMiddleware(documentRoot string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			filename := path.Join(documentRoot, path.Clean(c.Request().URL.Path))
+			ext := strings.ToLower(path.Ext(filename))
 
-	if err := filepath.WalkDir(config.DocumentRoot, func(path string, d fs.DirEntry, err error) error {
-		if d.IsDir() {
-			return nil
+			stat, err := os.Stat(filename)
+			if err != nil || stat.IsDir() || (ext == "php") || strings.HasPrefix(path.Base(filename), ".") {
+				return next(c)
+			}
+
+			return c.File(filename)
 		}
-
-		if filepath.Ext(config.DocumentRoot) == filepath.Ext(path) {
-			return nil
-		}
-
-		if strings.HasPrefix(filepath.Base(path), ".") {
-			return nil
-		}
-
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		memfs.Store(path, data)
-
-		return nil
-	}); err != nil {
-		return nil, err
 	}
+}
 
-	return func(w http.ResponseWriter, r *http.Request) {
-		filename := filepath.Join(config.DocumentRoot, r.URL.Path)
-		contents, found := memfs.Load(filename)
-		if !found {
-			handlerFunc(w, r)
-			return
-		}
+func serveFastCGIMiddleware(routerFilename, fastcgiServerNetwork, fastcgiServerAddr string) echo.MiddlewareFunc {
+	connFactory := gofast.SimpleConnFactory(fastcgiServerNetwork, fastcgiServerAddr)
 
-		w.Header().Set("Content-Type", mime.TypeByExtension(filepath.Ext(r.URL.Path)))
-		w.Write(contents.([]byte))
-	}, nil
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return echo.WrapHandler(gofast.NewHandler(
+			gofast.NewFileEndpoint(routerFilename)(gofast.BasicSession),
+			gofast.SimpleClientFactory(connFactory),
+		))
+	}
 }

@@ -1,22 +1,60 @@
 PHOO
 ====
-> PHP high-performance application server and `php-fpm` supervisor.
+> modern php application server, it depends on the bullet-proof `php-fpm` but it controls how it is being run.
 
-Why?
-====
-> PHP isn't built for async world, so adopting the community, ecosystem and the mindset 
-> to be async isn't an easy task,
-> but also I want very simple command to run, and it handles everything without too many configurations files,
-> today most of the apps are using environment variables and the well-known `.env` file, so why there isn't a tool
-> that you can ask to just run and configure everything from a single `.env` file, I don't want to add a hassle for understanding
-> how `PHP-FPM` is working or anything else, all what I need it `$ phoo serve`, that's all.
+Examples
+========
+> Imagine you have a php application uses modern framework like laravel, symfony ... etc
+> that app contains a public directory, and that public directory contains the main bootstrap file that 
+> serves the incoming requests named as `index.php`.
+```shell
+# this all what you need to serve a laravel application!
+$ phoo serve -r ./public
+⇨ http server started on [::]:8000
+```
 
-How?
-====
-> Basically, `phoo` is a simple static-file as well a fastcgi reverse-proxy, but mainly focuses on `PHP`, not only that,
-> but also, you can consider `phoo` a supervisor that manages `PHP-FPM` and its configurations to match today's setup.
-> `phoo` is loading all the files in the document root into memory to accelerate static files serving, so don't put any huge file there.
+#### But how about changing the address it is listening on to 0.0.0.0:80?
+```shell
+# no problem
+$ phoo serve -r ./public --http 0.0.0.0:80
+⇨ http server started on [::]:80
+```
 
-Usage?
-======
-> for now, use our official docker image [here](https://github.com/alash3al/phoo/pkgs/container/phoo)
+#### Sometimes I want to add custom `php.ini` settings, is it easy?
+```shell
+# is this ok for you? ;)
+$ phoo serve -r ./public -i display_errors=Off -i another_key=another_value
+⇨ http server started on [::]:8000
+```
+#### I have a high traffic web-app and I want to increase the php workers
+```shell
+# just increase the workers count
+$ phoo serve -r ./public --workers=20
+⇨ http server started on [::]:8000
+```
+
+#### Hmmmm, but I want to monitor my app via prometheus metrics, I don't want to do it manually
+```shell
+# no need to do it yourself, this will enable prometheus metrics at the specified `/metrics` path
+$ phoo serve -r ./public --metrics "/metrics"
+⇨ http server started on [::]:8000
+```
+
+#### Wow!, seems `phoo` has a lot of simple flags/configs, is it documented anywhere?
+> just run `phoo serve --help` and enjoy it :), you will find that you can also pass flags via `ENV` vars, and it will automatically read `.env` file in the current working directory.
+
+Requirements
+============
+- `php-fpm`
+- a shell access to run `phoo` :D
+
+Installation
+============
+- Binary installations could be done via the [releases](https://github.com/alash3al/phoo/releases).
+- Docker image is available at [`ghcr.io/alash3al/phoo`](https://github.com/alash3al/phoo/pkgs/container/phoo)
+  - you can easily `COPY --from=ghcr.io/alash3al/phoo:2.1.8 /usr/bin/phoo /usr/bin/phoo` to run it into your own custom image!
+
+TODOs
+=====
+- [ ] Add `.env.example` with comments to describe each var.
+- [ ] Add future plans/thoughts.
