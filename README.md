@@ -41,7 +41,7 @@ $ phoo serve -r ./public --metrics "/metrics"
 ```
 
 #### Wow!, seems `phoo` has a lot of simple flags/configs, is it documented anywhere?
-> just run `phoo serve --help` and enjoy it :), you will find that you can also pass flags via `ENV` vars.
+> just run `phoo serve --help` and enjoy it :), you will find that you can also pass flags via `ENV` vars, and it will automatically read `.env` file in the current working directory.
 
 Requirements
 ============
