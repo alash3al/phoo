@@ -20,7 +20,7 @@ $ phoo serve -r ./public --http 0.0.0.0:80
 ⇨ http server started on [::]:80
 ```
 
-#### Sometimes I want to add custom `pnp.ini` settings, is it easy?
+#### Sometimes I want to add custom `php.ini` settings, is it easy?
 ```shell
 # is this ok for you? ;)
 $ phoo serve -r ./public -i display_errors=Off -i another_key=another_value
