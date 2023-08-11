@@ -53,3 +53,8 @@ Installation
 - Binary installations could be done via the [releases](https://github.com/alash3al/phoo/releases).
 - Docker image is available at [`ghcr.io/alash3al/phoo`](https://github.com/alash3al/phoo/pkgs/container/phoo)
   - you can easily `COPY --from=ghcr.io/alash3al/phoo:2.1.8 /usr/bin/phoo /usr/bin/phoo` to run it into your own custom image!
+
+TODOs
+=====
+- [ ] Add `.env.example` with comments to describe each var
+- 
