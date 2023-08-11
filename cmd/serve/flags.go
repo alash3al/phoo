@@ -2,6 +2,7 @@ package serve
 
 import (
 	"fmt"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/urfave/cli/v2"
 	"runtime"
 )
@@ -15,6 +16,7 @@ func DefaultFlags(envPrefix string) []cli.Flag {
 		&cli.StringFlag{
 			Name:     "root",
 			Usage:    "the document root full path",
+			Aliases:  []string{"r"},
 			EnvVars:  []string{prefixWrapper("DOCUMENT_ROOT")},
 			Required: true,
 		},
@@ -22,6 +24,7 @@ func DefaultFlags(envPrefix string) []cli.Flag {
 		&cli.StringFlag{
 			Name:    "entrypoint",
 			Usage:   "the default php entrypoint script",
+			Aliases: []string{"e"},
 			EnvVars: []string{"ENTRYPOINT"},
 		},
 
@@ -56,6 +59,7 @@ func DefaultFlags(envPrefix string) []cli.Flag {
 		&cli.StringSliceFlag{
 			Name:    "ini",
 			Usage:   "php ini settings in the form of key=value, this flag could be repeated for multiple ini settings",
+			Aliases: []string{"i"},
 			EnvVars: []string{prefixWrapper("PHP_INI")},
 		},
 
@@ -86,11 +90,51 @@ func DefaultFlags(envPrefix string) []cli.Flag {
 			EnvVars: []string{prefixWrapper("METRICS_PATH")},
 		},
 
+		&cli.BoolFlag{
+			Name:    "cors",
+			Usage:   "whether to enable/disable the cors-* features/flags",
+			EnvVars: []string{prefixWrapper("CORS_ENABLED")},
+			Value:   false,
+		},
+
+		&cli.StringSliceFlag{
+			Name:    "cors-origin",
+			Usage:   "this flag adds the specified origin to the list of allowed cors origins, you can call it multiple times to add multiple origins",
+			EnvVars: []string{prefixWrapper("CORS_ORIGINS")},
+			Value:   cli.NewStringSlice("*"),
+		},
+
+		&cli.StringSliceFlag{
+			Name:    "cors-methods",
+			Usage:   "this flag adds the specified methods to the list of allowed cors methods, you can call it multiple times to add multiple methods",
+			EnvVars: []string{prefixWrapper("CORS_METHODS")},
+			Value:   cli.NewStringSlice(middleware.DefaultCORSConfig.AllowMethods...),
+		},
+
+		&cli.StringSliceFlag{
+			Name:    "cors-headers",
+			Usage:   "this flag adds the specified headers to the list of allowed cors headers the client can send, you can call it multiple times to add multiple headers",
+			EnvVars: []string{prefixWrapper("CORS_HEADERS")},
+		},
+
+		&cli.StringSliceFlag{
+			Name:    "cors-expose",
+			Usage:   "this flag adds the specified headers to the list of allowed headers the client can access, you can call it multiple times to add multiple headers",
+			EnvVars: []string{prefixWrapper("CORS_EXPOSE")},
+		},
+
+		&cli.BoolFlag{
+			Name:    "cors-credentials",
+			Usage:   "this flag indicates whether or not the actual request can be made using credentials",
+			EnvVars: []string{prefixWrapper("CORS_CREDENTIALS")},
+			Value:   false,
+		},
+
 		&cli.IntFlag{
-			Name:    "gzip",
-			Usage:   "gzip level, 0 means 'Disabled",
-			EnvVars: []string{prefixWrapper("GZIP_LEVEL")},
-			Value:   5,
+			Name:    "cors-age",
+			Usage:   "the cors max_age in seconds",
+			EnvVars: []string{prefixWrapper("CORS_AGE")},
+			Value:   0,
 		},
 	}
 }

@@ -3,14 +3,18 @@ package serve
 import (
 	"errors"
 	"github.com/alash3al/phoo/internals/fpm"
+	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/urfave/cli/v2"
 	"os"
 	"path/filepath"
+	"time"
 )
 
-func Action() cli.ActionFunc {
+var fpmProcess *fpm.Process
+
+func Before() cli.BeforeFunc {
 	return func(ctx *cli.Context) error {
 		if err := os.RemoveAll(ctx.String("data")); err != nil {
 			return err
@@ -51,7 +55,7 @@ func Action() cli.ActionFunc {
 			}
 		}
 
-		fpmProcess := &fpm.Process{
+		fpmProcess = &fpm.Process{
 			BinFilename:           ctx.String("fpm"),
 			PIDFilename:           filepath.Join(ctx.String("data"), "fpm.pid"),
 			ConfigFilename:        filepath.Join(ctx.String("data"), "fpm.ini"),
@@ -62,10 +66,12 @@ func Action() cli.ActionFunc {
 			WorkerMaxRequestTime:  ctx.Int("timeout"),
 		}
 
-		if err := fpmProcess.Start(); err != nil {
-			return err
-		}
+		return fpmProcess.Start()
+	}
+}
 
+func Action() cli.ActionFunc {
+	return func(ctx *cli.Context) error {
 		e := echo.New()
 		e.HideBanner = true
 
@@ -73,11 +79,24 @@ func Action() cli.ActionFunc {
 			e.Use(middleware.Logger())
 		}
 
-		e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
-			Level: ctx.Int("gzip"),
+		if ctx.Bool("cors") {
+			e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+				AllowOrigins:     ctx.StringSlice("cors-origins"),
+				AllowMethods:     ctx.StringSlice("cors-methods"),
+				AllowHeaders:     ctx.StringSlice("cors-headers"),
+				AllowCredentials: ctx.Bool("cors-credentials"),
+				ExposeHeaders:    ctx.StringSlice("cors-expose"),
+				MaxAge:           ctx.Int("cors-age"),
+			}))
+		}
+
+		e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
+			Timeout: time.Duration(ctx.Int("timeout")) * time.Second,
 		}))
 
 		e.Use(middleware.Recover())
+		e.Use(echoprometheus.NewMiddleware("PHOO"))
+		e.Use(servePrometheusMetricsMiddleware(ctx.String("metrics")))
 		e.Use(serveStaticFilesOnlyMiddleware(ctx.String("root")))
 		e.Use(serveFastCGIMiddleware(
 			ctx.String("entrypoint"),

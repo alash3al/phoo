@@ -9,13 +9,18 @@ import (
 
 func main() {
 	app := &cli.App{
-		Name:        "phoo",
-		Description: "php modern applications serve that utilizes the bullet-proof php-fpm under-the-hood",
+		Name:                 "phoo",
+		Description:          "php modern applications serve that utilizes the bullet-proof php-fpm under-the-hood",
+		Suggest:              true,
+		Version:              "v3.x",
+		EnableBashCompletion: true,
+		SliceFlagSeparator:   ";",
 	}
 
 	app.Commands = append(app.Commands, &cli.Command{
 		Name:   "serve",
 		Flags:  serve.DefaultFlags("PHOO"),
+		Before: serve.Before(),
 		Action: serve.Action(),
 	})
 

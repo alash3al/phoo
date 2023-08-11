@@ -1,12 +1,32 @@
 package serve
 
 import (
+	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/yookoala/gofast"
 	"os"
 	"path"
 	"strings"
 )
+
+func servePrometheusMetricsMiddleware(metricsPath string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			currentPath := strings.Trim(c.Request().URL.Path, "/")
+			metricsPath = strings.Trim(metricsPath, "/")
+
+			if metricsPath == "" {
+				return next(c)
+			}
+
+			if strings.EqualFold(currentPath, metricsPath) {
+				return echoprometheus.NewHandler()(c)
+			}
+
+			return next(c)
+		}
+	}
+}
 
 func serveStaticFilesOnlyMiddleware(documentRoot string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
