@@ -56,5 +56,5 @@ Installation
 
 TODOs
 =====
-- [ ] Add `.env.example` with comments to describe each var
-- 
+- [ ] Add `.env.example` with comments to describe each var.
+- [ ] Add future plans/thoughts.
