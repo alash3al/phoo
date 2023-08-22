@@ -4,11 +4,11 @@ PHOO
 
 Examples
 ========
-> Imagine you have a php application uses modern framework like laravel, symfony ... etc
+> Imagine you have a php application that uses a modern framework like laravel, Symfony... etc
 > that app contains a public directory, and that public directory contains the main bootstrap file that 
-> serves the incoming requests named as `index.php`.
+> serves the incoming requests named `index.php`.
 ```shell
-# this all what you need to serve a laravel application!
+# this is all that you need to serve a laravel application!
 $ phoo serve -r ./public
 ⇨ http server started on [::]:8000
 ```
@@ -26,22 +26,29 @@ $ phoo serve -r ./public --http 0.0.0.0:80
 $ phoo serve -r ./public -i display_errors=Off -i another_key=another_value
 ⇨ http server started on [::]:8000
 ```
-#### I have a high traffic web-app and I want to increase the php workers
+#### I have a high traffic web app and I want to increase the number of php workers
 ```shell
-# just increase the workers count
+# increase the workers' count
 $ phoo serve -r ./public --workers=20
 ⇨ http server started on [::]:8000
 ```
 
-#### Hmmmm, but I want to monitor my app via prometheus metrics, I don't want to do it manually
+#### Hmmmm, but I want to monitor my app via Prometheus metrics, I don't want to do it manually
 ```shell
-# no need to do it yourself, this will enable prometheus metrics at the specified `/metrics` path
+# no need to do it yourself, this will enable Prometheus metrics at the specified `/metrics` path
 $ phoo serve -r ./public --metrics "/metrics"
 ⇨ http server started on [::]:8000
 ```
 
-#### Wow!, seems `phoo` has a lot of simple flags/configs, is it documented anywhere?
-> just run `phoo serve --help` and enjoy it :), you will find that you can also pass flags via `ENV` vars, and it will automatically read `.env` file in the current working directory.
+#### Can I choose the `php-fpm` version / binary path?
+```shell
+# Of course
+$ phoo serve -r ./public --fpm "php-fpm8.2"
+⇨ http server started on [::]:8000
+```
+
+#### Wow!, it seems `phoo` has a lot of simple flags/configs, is it documented anywhere?
+> Just run `phoo serve --help` and enjoy it :), you will find that you can also pass flags via `ENV` vars, and it will automatically read the `.env` file in the current working directory.
 
 Requirements
 ============
