@@ -136,5 +136,19 @@ func DefaultFlags(envPrefix string) []cli.Flag {
 			EnvVars: []string{prefixWrapper("CORS_AGE")},
 			Value:   0,
 		},
+
+		&cli.StringFlag{
+			Name:    "user",
+			Usage:   "run the fpm www pool user",
+			EnvVars: []string{prefixWrapper("USER")},
+			Value:   "www-data",
+		},
+
+		&cli.StringFlag{
+			Name:    "group",
+			Usage:   "run the fpm www pool group",
+			EnvVars: []string{prefixWrapper("GROUP")},
+			Value:   "www-data",
+		},
 	}
 }

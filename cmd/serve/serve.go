@@ -64,6 +64,8 @@ func Before() cli.BeforeFunc {
 			WorkerCount:           ctx.Int("workers"),
 			WorkerMaxRequestCount: ctx.Int("requests"),
 			WorkerMaxRequestTime:  ctx.Int("timeout"),
+			User:                  ctx.String("user"),
+			Group:                 ctx.String("group"),
 		}
 
 		return fpmProcess.Start()

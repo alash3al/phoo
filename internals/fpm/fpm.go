@@ -25,6 +25,9 @@ type Process struct {
 	WorkerCount           int
 	WorkerMaxRequestCount int
 	WorkerMaxRequestTime  int
+
+	User  string
+	Group string
 }
 
 func (p *Process) Start() error {
@@ -49,6 +52,8 @@ func (p *Process) Start() error {
 		"worker.count":             fmt.Sprintf("%v", p.WorkerCount),
 		"worker.request.max_count": fmt.Sprintf("%v", p.WorkerMaxRequestCount),
 		"worker.request.max_time":  fmt.Sprintf("%v", p.WorkerMaxRequestTime),
+		"user":                     p.User,
+		"group":                    p.Group,
 	})
 
 	if err := os.WriteFile(p.ConfigFilename, []byte(fpmConfigFileContents), 0755); err != nil {
@@ -59,7 +64,12 @@ func (p *Process) Start() error {
 }
 
 func (p *Process) execAndWait() error {
-	cmd := exec.Command(p.BinFilename, "-F", "-O", "-y", p.ConfigFilename)
+	args := []string{"-F", "-O", "-y", p.ConfigFilename}
+	if p.User == "root" || p.Group == "root" {
+		args = append(args, "-R")
+	}
+
+	cmd := exec.Command(p.BinFilename, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
